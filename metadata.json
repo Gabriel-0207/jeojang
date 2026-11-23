@@ -1,0 +1,6 @@
+{
+  "name": "목포덕인고등학교 학교 생활 능력치 향상 프로그램",
+  "description": "목포덕인고등학교 학생들의 6대 학교 생활 능력치(학업/지력, 체력/운동, 사교/친화력, 리더십/평판, 예술/창의력, 멘탈/성실성)를 일일·주간·월간 임무로 육성하는 학생 성장 플랫폼입니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
