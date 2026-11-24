@@ -2,12 +2,15 @@ import { useMemo, useState } from 'react';
 import {
   Award,
   Check,
+  Coins,
   Edit3,
   LogOut,
   RotateCcw,
   Search,
+  ShoppingBag,
   X,
 } from 'lucide-react';
+import { SKIN_MAP } from '../data/characterOptions';
 import {
   ALL_MISSIONS,
   DAILY_MISSIONS,
@@ -30,11 +33,14 @@ import {
   MissionLog,
   MissionPeriod,
   StatKey,
+  StudentCharacter,
   StudentProfile,
   StudyLog,
   StudyNote,
   StudyTask,
 } from '../types/student';
+import { CharacterAvatar } from './CharacterAvatar';
+import { CharacterStudio } from './CharacterStudio';
 import { MissionCompletionModal } from './MissionCompletionModal';
 import { ProfileEditModal } from './ProfileEditModal';
 import { ResetRecordsModal } from './ResetRecordsModal';
@@ -42,11 +48,12 @@ import { SchoolCrest } from './SchoolCrest';
 import { StatRadarChart } from './StatRadarChart';
 import { StudySupportPanel } from './StudySupportPanel';
 
-type NavSection = 'overview' | 'missions' | 'study' | 'logs';
+type NavSection = 'overview' | 'missions' | 'character' | 'study' | 'logs';
 type PeriodFilter = 'all' | MissionPeriod;
 
 interface DashboardProps {
   student: StudentProfile;
+  character: StudentCharacter;
   userEmail: string;
   logs: MissionLog[];
   logsLoading: boolean;
@@ -57,7 +64,12 @@ interface DashboardProps {
   onCompleteMission: (
     mission: MissionDefinition,
     note: string
-  ) => Promise<{ previousGrade: GradeRank; nextGrade: GradeRank; promoted: boolean }>;
+  ) => Promise<{
+    previousGrade: GradeRank;
+    nextGrade: GradeRank;
+    promoted: boolean;
+    pointReward: number;
+  }>;
   onUpdateIdentity: (studentNumber: string, name: string) => Promise<void>;
   onResetRecords: (includeProfile: boolean) => Promise<void>;
   onLogout: () => Promise<void>;
@@ -83,6 +95,7 @@ function formatLogTime(val: MissionLog['createdAt']): string {
 
 export function Dashboard({
   student,
+  character,
   userEmail,
   logs,
   logsLoading,
@@ -167,11 +180,15 @@ export function Dashboard({
 
   const handleConfirmCompletion = async (mission: MissionDefinition, note: string) => {
     const result = await onCompleteMission(mission, note);
-    setFeedbackMessage(`"${mission.title}" 완료 · 능력치 +${mission.totalGain} 반영됨`);
+    setFeedbackMessage(
+      `"${mission.title}" 완료 · 능력치 +${mission.totalGain} · +${result.pointReward} P 획득`
+    );
     if (result.promoted) {
       setPromotionBanner({ from: result.previousGrade, to: result.nextGrade });
     }
   };
+
+  const equippedSkin = SKIN_MAP[character.equippedSkin] ?? SKIN_MAP.novice_uniform;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -196,6 +213,7 @@ export function Dashboard({
               [
                 { id: 'overview', label: '대시보드' },
                 { id: 'missions', label: '성장 임무' },
+                { id: 'character', label: '캐릭터 상점' },
                 { id: 'study', label: '학업 보조' },
                 { id: 'logs', label: '성장 기록' },
               ] as { id: NavSection; label: string }[]
@@ -234,6 +252,7 @@ export function Dashboard({
             [
               { id: 'overview', label: '대시보드' },
               { id: 'missions', label: '성장 임무' },
+              { id: 'character', label: '캐릭터 상점' },
               { id: 'study', label: '학업 보조' },
               { id: 'logs', label: '성장 기록' },
             ] as { id: NavSection; label: string }[]
@@ -305,7 +324,14 @@ export function Dashboard({
           </div>
         )}
 
-        {activeNav === 'study' ? (
+        {activeNav === 'character' ? (
+          <CharacterStudio
+            student={student}
+            character={character}
+            onGoToMissions={() => handleNavClick('missions')}
+            onBackToDashboard={() => handleNavClick('overview')}
+          />
+        ) : activeNav === 'study' ? (
           <StudySupportPanel
             uid={student.uid}
             studyLogs={studyLogs}
@@ -322,38 +348,72 @@ export function Dashboard({
             <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
               <div className="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-6 sm:p-8 flex flex-col justify-between">
                 <div>
-                  {/* Student Header */}
-                  <div className="flex flex-wrap items-start justify-between gap-4 pb-6 border-b border-slate-100">
-                    <div>
-                      <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
-                        <span className="font-mono tabular-nums">{student.studentNumber}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>{userEmail}</span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mr-1">
-                          {student.name}
-                        </h1>
-                        <button
-                          type="button"
-                          onClick={() => setProfileModalOpen(true)}
-                          className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900 px-2 py-1 rounded-md hover:bg-slate-100 transition-colors whitespace-nowrap cursor-pointer"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                          <span>정보 수정</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setResetModalOpen(true)}
-                          className="inline-flex items-center gap-1 text-xs text-rose-700 hover:text-rose-900 px-2 py-1 rounded-md hover:bg-rose-50 transition-colors whitespace-nowrap cursor-pointer"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>기록 초기화</span>
-                        </button>
+                  {/* Student Header with Pixel RPG Character */}
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-slate-100">
+                    <div className="flex items-start gap-4 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => handleNavClick('character')}
+                        aria-label="캐릭터 스킨 상점 열기"
+                        className="shrink-0 group text-left cursor-pointer focus:outline-none"
+                      >
+                        <CharacterAvatar
+                          config={character}
+                          skinId={character.equippedSkin}
+                          size="sm"
+                          className="group-hover:border-[#1B365D] transition-colors"
+                        />
+                      </button>
+
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mb-1">
+                          <span className="font-mono tabular-nums">{student.studentNumber}</span>
+                          <span aria-hidden="true">·</span>
+                          <span className="truncate">{userEmail}</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mr-1">
+                            {student.name}
+                          </h1>
+                          <button
+                            type="button"
+                            onClick={() => setProfileModalOpen(true)}
+                            className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900 px-2 py-1 rounded-md hover:bg-slate-100 transition-colors whitespace-nowrap cursor-pointer"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>정보 수정</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setResetModalOpen(true)}
+                            className="inline-flex items-center gap-1 text-xs text-rose-700 hover:text-rose-900 px-2 py-1 rounded-md hover:bg-rose-50 transition-colors whitespace-nowrap cursor-pointer"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>기록 초기화</span>
+                          </button>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
+                          <span className="font-semibold text-slate-800">{character.nickname}</span>
+                          <span aria-hidden="true" className="text-slate-300">·</span>
+                          <span className="text-slate-600">{equippedSkin.name}</span>
+                          <span aria-hidden="true" className="text-slate-300">·</span>
+                          <span className="inline-flex items-center gap-1 font-mono tabular-nums font-bold text-amber-700">
+                            <Coins className="w-3.5 h-3.5 text-amber-600" />
+                            {student.points} P
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleNavClick('character')}
+                            className="inline-flex items-center gap-1 font-semibold text-[#1B365D] hover:underline whitespace-nowrap cursor-pointer"
+                          >
+                            <ShoppingBag className="w-3 h-3" />
+                            <span>스킨 상점</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0 self-start">
                       <div
                         className={`px-4 py-2 rounded-lg font-display font-bold text-xl tabular-nums ${gradeInfo.badgeBgClass}`}
                       >
@@ -624,6 +684,10 @@ export function Dashboard({
                             <span className="font-mono tabular-nums text-[#1B365D] font-medium">
                               {gainSummary}
                             </span>
+                            <span aria-hidden="true">·</span>
+                            <span className="font-mono tabular-nums font-semibold text-amber-700">
+                              +{mission.pointReward} P
+                            </span>
                           </div>
                           <h3
                             className={`text-sm font-semibold ${
@@ -771,7 +835,7 @@ export function Dashboard({
           await onResetRecords(includeProfile);
           setPromotionBanner(null);
           if (!includeProfile) {
-            setFeedbackMessage('능력치·등급(E등급)·임무 기록이 모두 초기화되었습니다.');
+            setFeedbackMessage('능력치·등급(E등급)·포인트·임무 기록이 모두 초기화되었습니다.');
           }
         }}
       />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RotateCcw, X } from 'lucide-react';
+import { RotateCcw, Trash2, X } from 'lucide-react';
 
 interface ResetRecordsModalProps {
   isOpen: boolean;
@@ -16,17 +16,18 @@ export function ResetRecordsModal({
   onClose,
   onConfirmReset,
 }: ResetRecordsModalProps) {
-  const [includeProfile, setIncludeProfile] = useState(false);
+  const [resetMode, setResetMode] = useState<'stats_only' | 'full_account'>('stats_only');
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
+  const isFullReset = resetMode === 'full_account';
+
   const handleClose = () => {
     if (submitting) return;
     setConfirmed(false);
-    setIncludeProfile(false);
     setError(null);
     onClose();
   };
@@ -38,9 +39,8 @@ export function ResetRecordsModal({
     setError(null);
     setSubmitting(true);
     try {
-      await onConfirmReset(includeProfile);
+      await onConfirmReset(isFullReset);
       setConfirmed(false);
-      setIncludeProfile(false);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : '기록 초기화 중 오류가 발생했습니다.');
@@ -63,7 +63,7 @@ export function ResetRecordsModal({
               {studentNumber} · {name}
             </p>
             <h2 id="reset-modal-title" className="font-display text-lg font-bold text-slate-900 mt-0.5">
-              프로그램 기록 초기화
+              기록 및 로그인 정보 초기화
             </h2>
           </div>
           <button
@@ -76,27 +76,63 @@ export function ResetRecordsModal({
           </button>
         </div>
 
-        <div className="p-4 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-900 leading-relaxed mb-5">
-          초기화를 실행하면 지금까지 누적된 <strong>6대 능력치(각 10점 · 총합 60점)</strong>와{' '}
-          <strong>등급(E등급)</strong>, 일일·주간·월간 임무 완료 상태 및 성장 활동 기록이 모두
-          삭제되며 되돌릴 수 없습니다.
+        <div className="space-y-2.5 mb-4">
+          <label
+            className={`block p-3.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+              !isFullReset
+                ? 'border-slate-900 bg-slate-50 text-slate-900'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-start gap-2.5">
+              <input
+                type="radio"
+                name="resetMode"
+                checked={!isFullReset}
+                onChange={() => {
+                  setResetMode('stats_only');
+                  setConfirmed(false);
+                }}
+                className="mt-0.5 text-slate-900 focus:ring-slate-900"
+              />
+              <div>
+                <p className="font-semibold text-slate-900">능력치 · 임무 기록만 초기화</p>
+                <p className="mt-1 leading-relaxed text-slate-600">
+                  6대 능력치(60점 · E등급), 보유 포인트(0P), 임무 및 학습 기록을 초기화합니다. 캐릭터와 보유 스킨, 로그인 정보는 유지됩니다.
+                </p>
+              </div>
+            </div>
+          </label>
+
+          <label
+            className={`block p-3.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+              isFullReset
+                ? 'border-rose-700 bg-rose-50 text-rose-950'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-start gap-2.5">
+              <input
+                type="radio"
+                name="resetMode"
+                checked={isFullReset}
+                onChange={() => {
+                  setResetMode('full_account');
+                  setConfirmed(false);
+                }}
+                className="mt-0.5 text-rose-700 focus:ring-rose-700"
+              />
+              <div>
+                <p className="font-semibold text-rose-900">로그인 · 학생 · 캐릭터 전체 초기화</p>
+                <p className="mt-1 leading-relaxed text-rose-800">
+                  로그인 계정 데이터, 학번·이름, 캐릭터, 보유 스킨, 모든 임무·학습 기록을 완전히 삭제하고 로그아웃하여 처음부터 다시 시작합니다.
+                </p>
+              </div>
+            </div>
+          </label>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <label className="flex items-start gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeProfile}
-              onChange={(e) => setIncludeProfile(e.target.checked)}
-              className="mt-0.5 rounded border-slate-300 text-[#1B365D] focus:ring-[#1B365D]"
-            />
-            <span className="text-xs text-slate-700 leading-relaxed">
-              <strong className="font-semibold text-slate-900">학번·이름 정보까지 함께 초기화</strong>
-              <br />
-              체크하면 학번과 이름을 새로 입력하는 초기 등록 화면으로 이동합니다.
-            </span>
-          </label>
-
           <label className="flex items-center gap-2.5 text-xs text-slate-700 cursor-pointer">
             <input
               type="checkbox"
@@ -104,7 +140,11 @@ export function ResetRecordsModal({
               onChange={(e) => setConfirmed(e.target.checked)}
               className="rounded border-slate-300 text-rose-700 focus:ring-rose-700"
             />
-            <span>위 내용을 확인했으며 기록을 영구적으로 초기화합니다.</span>
+            <span>
+              {isFullReset
+                ? '모든 계정·로그인·캐릭터 데이터가 영구 삭제됨을 확인했습니다.'
+                : '위 내용을 확인했으며 능력치 및 활동 기록을 초기화합니다.'}
+            </span>
           </label>
 
           {error && (
@@ -127,8 +167,14 @@ export function ResetRecordsModal({
               disabled={!confirmed || submitting}
               className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-rose-700 rounded-lg hover:bg-rose-800 disabled:opacity-50 transition-colors cursor-pointer"
             >
-              <RotateCcw className="w-4 h-4" />
-              <span>{submitting ? '초기화 중...' : '기록 초기화'}</span>
+              {isFullReset ? <Trash2 className="w-4 h-4" /> : <RotateCcw className="w-4 h-4" />}
+              <span>
+                {submitting
+                  ? '초기화 중...'
+                  : isFullReset
+                    ? '전체 초기화 후 로그아웃'
+                    : '기록 초기화'}
+              </span>
             </button>
           </div>
         </form>

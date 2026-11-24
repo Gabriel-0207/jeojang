@@ -66,17 +66,26 @@ export function MissionCompletionModal({
 
         <p className="text-sm text-slate-600 leading-relaxed mb-5">{mission.description}</p>
 
-        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 mb-5">
-          <p className="text-xs font-medium text-slate-500 mb-2">획득 예정 능력치</p>
-          <div className="flex flex-wrap gap-4">
-            {gainEntries.map(([key, amount]) => (
-              <div key={key} className="flex items-baseline gap-1.5">
-                <span className="text-sm font-semibold text-slate-900">{STAT_LABEL_MAP[key]}</span>
-                <span className="font-mono tabular-nums text-sm font-bold text-[#1B365D]">
-                  +{amount}
-                </span>
-              </div>
-            ))}
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 mb-5 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-medium text-slate-500 mb-1.5">획득 예정 능력치</p>
+            <div className="flex flex-wrap gap-4">
+              {gainEntries.map(([key, amount]) => (
+                <div key={key} className="flex items-baseline gap-1.5">
+                  <span className="text-sm font-semibold text-slate-900">{STAT_LABEL_MAP[key]}</span>
+                  <span className="font-mono tabular-nums text-sm font-bold text-[#1B365D]">
+                    +{amount}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-left sm:text-right">
+            <p className="text-xs font-medium text-slate-500 mb-1">상점 포인트 보상</p>
+            <p className="font-mono tabular-nums text-sm font-bold text-amber-700">
+              +{mission.pointReward} P
+            </p>
           </div>
         </div>
 

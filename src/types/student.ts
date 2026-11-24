@@ -28,6 +28,7 @@ export interface MissionDefinition {
   primaryStat: StatKey;
   statGains: Partial<StudentStats>;
   totalGain: number;
+  pointReward: number;
 }
 
 export interface StudentProfile {
@@ -37,6 +38,7 @@ export interface StudentProfile {
   grade: GradeRank;
   totalScore: number;
   completedCount: number;
+  points: number;
   stats: StudentStats;
   dailyKey: string;
   dailyCompleted: string[];
@@ -103,3 +105,61 @@ export interface StudyNote {
   updatedAt?: { seconds: number; nanoseconds: number } | Date | null;
 }
 
+export type CharacterSkinTone = 'fair' | 'warm' | 'tan' | 'deep';
+export type CharacterHairStyle =
+  | 'short_neat'
+  | 'two_block'
+  | 'parted_curtain'
+  | 'wavy_bob'
+  | 'long_straight'
+  | 'ponytail';
+export type CharacterHairColor =
+  | 'black'
+  | 'dark_brown'
+  | 'chestnut'
+  | 'blonde'
+  | 'crimson_red'
+  | 'navy_tint'
+  | 'emerald_tint'
+  | 'violet_plum'
+  | 'ash_gray'
+  | 'platinum';
+export type CharacterEyeStyle =
+  | 'bright'
+  | 'calm'
+  | 'smile'
+  | 'focused'
+  | 'wink'
+  | 'amber_orange'
+  | 'rose_pink'
+  | 'teal_mint'
+  | 'silver_ice'
+  | 'obsidian_dark';
+
+export type CharacterSkinId =
+  | 'novice_uniform'
+  | 'track_runner'
+  | 'arcane_scholar'
+  | 'crimson_knight'
+  | 'emerald_archer'
+  | 'valkyrie_gold'
+  | 'royal_paladin'
+  | 'celestial_lord';
+
+export interface CharacterBaseConfig {
+  nickname: string;
+  motto: string;
+  skinTone: CharacterSkinTone;
+  hairStyle: CharacterHairStyle;
+  hairColor: CharacterHairColor;
+  eyeStyle: CharacterEyeStyle;
+}
+
+export interface StudentCharacter extends CharacterBaseConfig {
+  uid: string;
+  equippedSkin: CharacterSkinId;
+  ownedSkins: CharacterSkinId[];
+  locked: boolean;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}

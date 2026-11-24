@@ -82,6 +82,9 @@
         "completedCount": {
           "type": "integer"
         },
+        "points": {
+          "type": "integer"
+        },
         "stats": {
           "$ref": "#/entities/StudentStats"
         },
@@ -125,6 +128,7 @@
         "grade",
         "totalScore",
         "completedCount",
+        "points",
         "stats",
         "dailyKey",
         "dailyCompleted",
@@ -301,6 +305,112 @@
         }
       },
       "required": ["uid", "subject", "title", "content", "reviewed", "createdAt", "updatedAt"]
+    },
+    "StudentCharacter": {
+      "title": "StudentCharacter",
+      "description": "Permanent locked base RPG character and shop-owned skins for a student.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "nickname": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 24
+        },
+        "motto": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "skinTone": {
+          "type": "string",
+          "enum": ["fair", "warm", "tan", "deep"],
+          "maxLength": 16
+        },
+        "hairStyle": {
+          "type": "string",
+          "enum": ["short_neat", "two_block", "parted_curtain", "wavy_bob", "long_straight", "ponytail"],
+          "maxLength": 24
+        },
+        "hairColor": {
+          "type": "string",
+          "enum": [
+            "black",
+            "dark_brown",
+            "chestnut",
+            "blonde",
+            "crimson_red",
+            "navy_tint",
+            "emerald_tint",
+            "violet_plum",
+            "ash_gray",
+            "platinum"
+          ],
+          "maxLength": 20
+        },
+        "eyeStyle": {
+          "type": "string",
+          "enum": [
+            "bright",
+            "calm",
+            "smile",
+            "focused",
+            "wink",
+            "amber_orange",
+            "rose_pink",
+            "teal_mint",
+            "silver_ice",
+            "obsidian_dark"
+          ],
+          "maxLength": 16
+        },
+        "equippedSkin": {
+          "type": "string",
+          "enum": [
+            "novice_uniform",
+            "track_runner",
+            "arcane_scholar",
+            "crimson_knight",
+            "emerald_archer",
+            "valkyrie_gold",
+            "royal_paladin",
+            "celestial_lord"
+          ],
+          "maxLength": 24
+        },
+        "ownedSkins": {
+          "type": "array"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "nickname",
+        "motto",
+        "skinTone",
+        "hairStyle",
+        "hairColor",
+        "eyeStyle",
+        "equippedSkin",
+        "ownedSkins",
+        "locked",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "firestore": {
@@ -327,6 +437,10 @@
     "/students/{userId}/studyNotes/{noteId}": {
       "schema": { "$ref": "#/entities/StudyNote" },
       "description": "Exam review and wrong-answer notes owned by the student."
+    },
+    "/students/{userId}/character/{docId}": {
+      "schema": { "$ref": "#/entities/StudentCharacter" },
+      "description": "Custom school-life character avatar owned by the student."
     }
   }
 }

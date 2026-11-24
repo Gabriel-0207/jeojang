@@ -165,6 +165,7 @@ export const DAILY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'academics',
     statGains: { academics: 3 },
     totalGain: 3,
+    pointReward: 1,
   },
   {
     id: 'daily_acad_02',
@@ -174,6 +175,7 @@ export const DAILY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'academics',
     statGains: { academics: 3 },
     totalGain: 3,
+    pointReward: 1,
   },
   {
     id: 'daily_fit_01',
@@ -183,6 +185,7 @@ export const DAILY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'fitness',
     statGains: { fitness: 3 },
     totalGain: 3,
+    pointReward: 1,
   },
   {
     id: 'daily_fit_02',
@@ -192,6 +195,7 @@ export const DAILY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'fitness',
     statGains: { fitness: 2 },
     totalGain: 2,
+    pointReward: 1,
   },
   {
     id: 'daily_soc_01',
@@ -201,6 +205,7 @@ export const DAILY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'social',
     statGains: { social: 2 },
     totalGain: 2,
+    pointReward: 1,
   },
   {
     id: 'daily_soc_02',
@@ -210,6 +215,7 @@ export const DAILY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'social',
     statGains: { social: 3 },
     totalGain: 3,
+    pointReward: 1,
   },
   {
     id: 'daily_lead_01',
@@ -219,6 +225,7 @@ export const DAILY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'leadership',
     statGains: { leadership: 3 },
     totalGain: 3,
+    pointReward: 1,
   },
   {
     id: 'daily_lead_02',
@@ -228,6 +235,7 @@ export const DAILY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'leadership',
     statGains: { leadership: 3 },
     totalGain: 3,
+    pointReward: 1,
   },
   {
     id: 'daily_cre_01',
@@ -237,6 +245,7 @@ export const DAILY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'creativity',
     statGains: { creativity: 3 },
     totalGain: 3,
+    pointReward: 1,
   },
   {
     id: 'daily_cre_02',
@@ -246,6 +255,7 @@ export const DAILY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'creativity',
     statGains: { creativity: 2 },
     totalGain: 2,
+    pointReward: 1,
   },
   {
     id: 'daily_men_01',
@@ -255,6 +265,7 @@ export const DAILY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'mental',
     statGains: { mental: 3 },
     totalGain: 3,
+    pointReward: 1,
   },
   {
     id: 'daily_men_02',
@@ -264,6 +275,7 @@ export const DAILY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'mental',
     statGains: { mental: 2 },
     totalGain: 2,
+    pointReward: 1,
   },
 ];
 
@@ -277,6 +289,7 @@ export const WEEKLY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'academics',
     statGains: { academics: 10 },
     totalGain: 10,
+    pointReward: 3,
   },
   {
     id: 'weekly_fit_01',
@@ -286,6 +299,7 @@ export const WEEKLY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'fitness',
     statGains: { fitness: 10 },
     totalGain: 10,
+    pointReward: 3,
   },
   {
     id: 'weekly_soc_01',
@@ -295,6 +309,7 @@ export const WEEKLY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'social',
     statGains: { social: 10 },
     totalGain: 10,
+    pointReward: 3,
   },
   {
     id: 'weekly_lead_01',
@@ -304,6 +319,7 @@ export const WEEKLY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'leadership',
     statGains: { leadership: 10 },
     totalGain: 10,
+    pointReward: 3,
   },
   {
     id: 'weekly_cre_01',
@@ -313,6 +329,7 @@ export const WEEKLY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'creativity',
     statGains: { creativity: 10 },
     totalGain: 10,
+    pointReward: 3,
   },
   {
     id: 'weekly_men_01',
@@ -322,6 +339,7 @@ export const WEEKLY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'mental',
     statGains: { mental: 10 },
     totalGain: 10,
+    pointReward: 3,
   },
 ];
 
@@ -335,6 +353,7 @@ export const MONTHLY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'academics',
     statGains: { academics: 20, mental: 15 },
     totalGain: 35,
+    pointReward: 10,
   },
   {
     id: 'monthly_02',
@@ -344,6 +363,7 @@ export const MONTHLY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'creativity',
     statGains: { fitness: 15, creativity: 20 },
     totalGain: 35,
+    pointReward: 10,
   },
   {
     id: 'monthly_03',
@@ -353,6 +373,7 @@ export const MONTHLY_MISSIONS: MissionDefinition[] = [
     primaryStat: 'leadership',
     statGains: { social: 15, leadership: 20 },
     totalGain: 35,
+    pointReward: 10,
   },
 ];
 

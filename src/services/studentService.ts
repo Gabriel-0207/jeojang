@@ -25,6 +25,7 @@ import {
 } from '../data/missions';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import {
+  CharacterBaseConfig,
   GradeRank,
   MissionDefinition,
   MissionLog,
@@ -117,6 +118,7 @@ export async function createStudentProfile(
       grade: 'E' as GradeRank,
       totalScore,
       completedCount: 0,
+      points: 0,
       stats: { ...INITIAL_STATS },
       dailyKey: getCurrentDailyKey(),
       dailyCompleted: [],
@@ -127,6 +129,70 @@ export async function createStudentProfile(
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+  }
+}
+
+export async function createStudentProfileWithCharacter(
+  uid: string,
+  studentNumber: string,
+  name: string,
+  baseConfig: CharacterBaseConfig
+): Promise<void> {
+  const validation = validateStudentInput(studentNumber, name);
+  if (!validation.valid) {
+    throw new Error(validation.message);
+  }
+
+  const cleanNickname = baseConfig.nickname.trim().slice(0, 24);
+  const cleanMotto = baseConfig.motto.trim().slice(0, 60);
+  if (!cleanNickname) {
+    throw new Error('캐릭터 별명을 1~24자 이내로 입력해 주세요.');
+  }
+
+  const path = `students/${uid}`;
+  const studentRef = doc(db, 'students', uid);
+  const charRef = doc(db, 'students', uid, 'character', 'main');
+
+  try {
+    const totalScore = calculateTotalScore(INITIAL_STATS);
+    const batch = writeBatch(db);
+    batch.set(studentRef, {
+      uid,
+      studentNumber: validation.cleanNumber,
+      name: validation.cleanName,
+      grade: 'E' as GradeRank,
+      totalScore,
+      completedCount: 0,
+      points: 0,
+      stats: { ...INITIAL_STATS },
+      dailyKey: getCurrentDailyKey(),
+      dailyCompleted: [],
+      weeklyKey: getCurrentWeeklyKey(),
+      weeklyCompleted: [],
+      monthlyKey: getCurrentMonthlyKey(),
+      monthlyCompleted: [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    batch.set(charRef, {
+      uid,
+      nickname: cleanNickname,
+      motto: cleanMotto,
+      skinTone: baseConfig.skinTone,
+      hairStyle: baseConfig.hairStyle,
+      hairColor: baseConfig.hairColor,
+      eyeStyle: baseConfig.eyeStyle,
+      equippedSkin: 'novice_uniform',
+      ownedSkins: ['novice_uniform'],
+      locked: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    await batch.commit();
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, path);
   }
@@ -160,7 +226,12 @@ export async function completeStudentMission(
   student: StudentProfile,
   mission: MissionDefinition,
   rawNote = ''
-): Promise<{ previousGrade: GradeRank; nextGrade: GradeRank; promoted: boolean }> {
+): Promise<{
+  previousGrade: GradeRank;
+  nextGrade: GradeRank;
+  promoted: boolean;
+  pointReward: number;
+}> {
   const currentDailyKey = getCurrentDailyKey();
   const currentWeeklyKey = getCurrentWeeklyKey();
   const currentMonthlyKey = getCurrentMonthlyKey();
@@ -225,11 +296,14 @@ export async function completeStudentMission(
   const studentRef = doc(db, 'students', student.uid);
   const logRef = doc(db, 'students', student.uid, 'logs', logId);
 
+  const nextPoints = (student.points ?? 0) + mission.pointReward;
+
   const batch = writeBatch(db);
   batch.update(studentRef, {
     grade: nextGrade,
     totalScore: nextTotalScore,
     completedCount: student.completedCount + 1,
+    points: nextPoints,
     stats: nextStats,
     dailyKey: currentDailyKey,
     dailyCompleted: nextDaily,
@@ -257,6 +331,7 @@ export async function completeStudentMission(
       previousGrade,
       nextGrade,
       promoted: previousGrade !== nextGrade,
+      pointReward: mission.pointReward,
     };
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `students/${student.uid}`);
@@ -289,14 +364,25 @@ export async function resetStudentRecords(
   try {
     if (includeProfile) {
       const batch = writeBatch(db);
+      batch.delete(doc(db, 'students', uid, 'character', 'main'));
       batch.delete(studentRef);
+      batch.delete(doc(db, 'users', uid));
       await batch.commit();
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.clear();
+          window.sessionStorage.clear();
+        } catch {
+          // Ignore storage access errors in restricted iframe environments
+        }
+      }
     } else {
       const totalScore = calculateTotalScore(INITIAL_STATS);
       await updateDoc(studentRef, {
         grade: 'E' as GradeRank,
         totalScore,
         completedCount: 0,
+        points: 0,
         stats: { ...INITIAL_STATS },
         dailyKey: getCurrentDailyKey(),
         dailyCompleted: [],
@@ -327,7 +413,11 @@ export function subscribeStudentProfile(
         onData(null);
         return;
       }
-      onData(snapshot.data() as StudentProfile);
+      const raw = snapshot.data() as StudentProfile;
+      onData({
+        ...raw,
+        points: typeof raw.points === 'number' ? raw.points : 0,
+      });
     },
     (error) => {
       try {

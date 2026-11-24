@@ -7,7 +7,7 @@ import { OnboardingSetup } from './components/OnboardingSetup';
 import { auth, googleProvider } from './firebase';
 import {
   completeStudentMission,
-  createStudentProfile,
+  createStudentProfileWithCharacter,
   resetStudentRecords,
   subscribeMissionLogs,
   subscribeStudentProfile,
@@ -15,13 +15,19 @@ import {
   updateStudentIdentity,
 } from './services/studentService';
 import {
+  createLockedCharacter,
+  subscribeStudentCharacter,
+} from './services/characterService';
+import {
   subscribeStudyLogs,
   subscribeStudyNotes,
   subscribeStudyTasks,
 } from './services/studyService';
 import {
+  CharacterBaseConfig,
   MissionDefinition,
   MissionLog,
+  StudentCharacter,
   StudentProfile,
   StudyLog,
   StudyNote,
@@ -41,6 +47,8 @@ function AppShell() {
   const [studyTasks, setStudyTasks] = useState<StudyTask[]>([]);
   const [studyNotes, setStudyNotes] = useState<StudyNote[]>([]);
   const [studyLoading, setStudyLoading] = useState(false);
+  const [character, setCharacter] = useState<StudentCharacter | null>(null);
+  const [characterLoading, setCharacterLoading] = useState(false);
   const [fatalError, setFatalError] = useState<Error | null>(null);
 
   if (fatalError) {
@@ -61,6 +69,7 @@ function AppShell() {
       } else {
         setStudent(null);
         setLogs([]);
+        setCharacter(null);
       }
     });
 
@@ -176,6 +185,33 @@ function AppShell() {
     };
   }, [authReady, user, student?.uid]);
 
+  useEffect(() => {
+    if (!authReady || !user || !student) {
+      setCharacter(null);
+      setCharacterLoading(false);
+      return;
+    }
+
+    setCharacterLoading(true);
+    let initialLoad = true;
+    const unsubCharacter = subscribeStudentCharacter(
+      user.uid,
+      (nextCharacter) => {
+        setCharacter(nextCharacter);
+        if (initialLoad) {
+          initialLoad = false;
+          setCharacterLoading(false);
+        }
+      },
+      (err) => {
+        setCharacterLoading(false);
+        setFatalError(err);
+      }
+    );
+
+    return () => unsubCharacter();
+  }, [authReady, user, student?.uid]);
+
   const handleGoogleLogin = async () => {
     setAuthError(null);
     try {
@@ -198,9 +234,18 @@ function AppShell() {
     await signOut(auth);
   };
 
-  const handleCreateStudent = async (studentNumber: string, name: string) => {
+  const handleCreateStudentWithCharacter = async (
+    studentNumber: string,
+    name: string,
+    charConfig: CharacterBaseConfig
+  ) => {
     if (!user) return;
-    await createStudentProfile(user.uid, studentNumber, name);
+    await createStudentProfileWithCharacter(user.uid, studentNumber, name, charConfig);
+  };
+
+  const handleCreateCharacterOnly = async (charConfig: CharacterBaseConfig) => {
+    if (!user) return;
+    await createLockedCharacter(user.uid, charConfig);
   };
 
   const handleUpdateIdentity = async (studentNumber: string, name: string) => {
@@ -211,6 +256,15 @@ function AppShell() {
   const handleResetRecords = async (includeProfile: boolean) => {
     if (!user) return;
     await resetStudentRecords(user.uid, includeProfile);
+    if (includeProfile) {
+      setStudent(null);
+      setLogs([]);
+      setStudyLogs([]);
+      setStudyTasks([]);
+      setStudyNotes([]);
+      setCharacter(null);
+      await signOut(auth);
+    }
   };
 
   const handleCompleteMission = async (mission: MissionDefinition, note: string) => {
@@ -220,7 +274,7 @@ function AppShell() {
     return completeStudentMission(student, mission, note);
   };
 
-  if (!authReady || (user && studentLoading)) {
+  if (!authReady || (user && (studentLoading || (student && characterLoading)))) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
         <div className="max-w-sm w-full bg-white border border-slate-200 rounded-xl p-8 text-center">
@@ -239,9 +293,25 @@ function AppShell() {
   if (!student) {
     return (
       <OnboardingSetup
+        mode="full"
         userEmail={user.email ?? ''}
         defaultName={user.displayName ?? ''}
-        onSubmit={handleCreateStudent}
+        onSubmitFull={handleCreateStudentWithCharacter}
+        onResetAccount={() => handleResetRecords(true)}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (!character || !character.locked) {
+    return (
+      <OnboardingSetup
+        mode="character-only"
+        userEmail={user.email ?? ''}
+        defaultName={student.name}
+        existingStudentNumber={student.studentNumber}
+        onSubmitCharacterOnly={handleCreateCharacterOnly}
+        onResetAccount={() => handleResetRecords(true)}
         onLogout={handleLogout}
       />
     );
@@ -250,6 +320,7 @@ function AppShell() {
   return (
     <Dashboard
       student={student}
+      character={character}
       userEmail={user.email ?? ''}
       logs={logs}
       logsLoading={logsLoading}

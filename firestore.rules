@@ -76,15 +76,19 @@ service cloud.firestore {
         && (arr.size() == 0 || (arr[0] is string && arr[0].size() >= 1 && arr[0].size() <= 40));
     }
 
+    function existingPoints(ex) {
+      return 'points' in ex ? ex.points : 0;
+    }
+
     function isValidStudentProfile(data) {
       return data.keys().hasAll([
           'uid', 'studentNumber', 'name', 'grade', 'totalScore', 'completedCount',
-          'stats', 'dailyKey', 'dailyCompleted', 'weeklyKey', 'weeklyCompleted',
+          'points', 'stats', 'dailyKey', 'dailyCompleted', 'weeklyKey', 'weeklyCompleted',
           'monthlyKey', 'monthlyCompleted', 'createdAt', 'updatedAt'
         ])
         && data.keys().hasOnly([
           'uid', 'studentNumber', 'name', 'grade', 'totalScore', 'completedCount',
-          'stats', 'dailyKey', 'dailyCompleted', 'weeklyKey', 'weeklyCompleted',
+          'points', 'stats', 'dailyKey', 'dailyCompleted', 'weeklyKey', 'weeklyCompleted',
           'monthlyKey', 'monthlyCompleted', 'createdAt', 'updatedAt'
         ])
         && data.uid is string
@@ -98,6 +102,7 @@ service cloud.firestore {
         && data.name.size() >= 1 && data.name.size() <= 30
         && data.totalScore is int && data.totalScore >= 60 && data.totalScore <= 59994
         && data.completedCount is int && data.completedCount >= 0 && data.completedCount <= 100000
+        && data.points is int && data.points >= 0 && data.points <= 1000000
         && isValidStatsMap(data.stats)
         && data.totalScore >= (
           data.stats.academics + data.stats.fitness + data.stats.social +
@@ -121,6 +126,7 @@ service cloud.firestore {
       return data.grade == 'E'
         && data.totalScore == 60
         && data.completedCount == 0
+        && data.points == 0
         && data.stats.academics == 10
         && data.stats.fitness == 10
         && data.stats.social == 10
@@ -204,6 +210,61 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidSkinId(skinId) {
+      return skinId is string && skinId.size() <= 24 && skinId in [
+        'novice_uniform',
+        'track_runner',
+        'arcane_scholar',
+        'crimson_knight',
+        'emerald_archer',
+        'valkyrie_gold',
+        'royal_paladin',
+        'celestial_lord'
+      ];
+    }
+
+    function isValidOwnedSkins(arr) {
+      return arr is list
+        && arr.size() >= 1 && arr.size() <= 16
+        && arr[0] is string && arr[0] == 'novice_uniform';
+    }
+
+    function isValidStudentCharacter(data) {
+      return data.keys().hasAll([
+          'uid', 'nickname', 'motto', 'skinTone', 'hairStyle', 'hairColor',
+          'eyeStyle', 'equippedSkin', 'ownedSkins', 'locked', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'nickname', 'motto', 'skinTone', 'hairStyle', 'hairColor',
+          'eyeStyle', 'equippedSkin', 'ownedSkins', 'locked', 'createdAt', 'updatedAt'
+        ])
+        && data.uid is string && data.uid == request.auth.uid
+        && data.uid.size() >= 1 && data.uid.size() <= 128
+        && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.nickname is string && data.nickname.size() >= 1 && data.nickname.size() <= 24
+        && data.motto is string && data.motto.size() <= 60
+        && data.skinTone is string && data.skinTone.size() <= 16
+        && data.skinTone in ['fair', 'warm', 'tan', 'deep']
+        && data.hairStyle is string && data.hairStyle.size() <= 24
+        && data.hairStyle in ['short_neat', 'two_block', 'parted_curtain', 'wavy_bob', 'long_straight', 'ponytail']
+        && data.hairColor is string && data.hairColor.size() <= 20
+        && data.hairColor in [
+          'black', 'dark_brown', 'chestnut', 'blonde', 'crimson_red',
+          'navy_tint', 'emerald_tint', 'violet_plum', 'ash_gray', 'platinum'
+        ]
+        && data.eyeStyle is string && data.eyeStyle.size() <= 16
+        && data.eyeStyle in [
+          'bright', 'calm', 'smile', 'focused', 'wink',
+          'amber_orange', 'rose_pink', 'teal_mint', 'silver_ice', 'obsidian_dark'
+        ]
+        && isValidSkinId(data.equippedSkin)
+        && isValidOwnedSkins(data.ownedSkins)
+        && data.equippedSkin in data.ownedSkins
+        && data.locked is bool && data.locked == true
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
     // 4. Collection Rules
     match /users/{userId} {
       allow get: if isOwner(userId) && isValidId(userId);
@@ -221,7 +282,10 @@ service cloud.firestore {
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
         && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'displayName', 'photoURL', 'updatedAt']);
-      allow delete: if false;
+      allow delete: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && !existsAfter(/databases/$(database)/documents/students/$(userId));
     }
 
     match /students/{userId} {
@@ -245,15 +309,17 @@ service cloud.firestore {
             // Action 1: Update student number or name
             incoming().diff(existing()).affectedKeys().hasOnly(['studentNumber', 'name', 'updatedAt'])
           ) || (
-            // Action 2: Complete mission & advance stats/grade
+            // Action 2: Complete mission & advance stats/grade/points
             incoming().diff(existing()).affectedKeys().hasOnly([
-              'grade', 'totalScore', 'completedCount', 'stats',
+              'grade', 'totalScore', 'completedCount', 'points', 'stats',
               'dailyKey', 'dailyCompleted', 'weeklyKey', 'weeklyCompleted',
               'monthlyKey', 'monthlyCompleted', 'updatedAt'
             ])
             && incoming().completedCount == existing().completedCount + 1
             && incoming().totalScore > existing().totalScore
             && incoming().totalScore <= existing().totalScore + 50
+            && incoming().points > existingPoints(existing())
+            && incoming().points <= existingPoints(existing()) + 400
             && incoming().stats.academics >= existing().stats.academics
             && incoming().stats.fitness >= existing().stats.fitness
             && incoming().stats.social >= existing().stats.social
@@ -264,10 +330,17 @@ service cloud.firestore {
             // Action 3: Reset progress back to initial E-rank state
             isInitialStudentState(incoming())
             && incoming().diff(existing()).affectedKeys().hasOnly([
-              'grade', 'totalScore', 'completedCount', 'stats',
+              'grade', 'totalScore', 'completedCount', 'points', 'stats',
               'dailyKey', 'dailyCompleted', 'weeklyKey', 'weeklyCompleted',
               'monthlyKey', 'monthlyCompleted', 'updatedAt'
             ])
+          ) || (
+            // Action 4: Spend points to unlock a character skin atomically
+            incoming().diff(existing()).affectedKeys().hasOnly(['points', 'updatedAt'])
+            && incoming().points < existingPoints(existing())
+            && incoming().points >= 0
+            && existsAfter(/databases/$(database)/documents/students/$(userId)/character/main)
+            && getAfter(/databases/$(database)/documents/students/$(userId)/character/main).data.ownedSkins.size() == get(/databases/$(database)/documents/students/$(userId)/character/main).data.ownedSkins.size() + 1
           )
         );
       allow delete: if isVerifiedUser()
@@ -366,6 +439,57 @@ service cloud.firestore {
           && isValidId(noteId)
           && isOwner(userId)
           && resource.data.uid == request.auth.uid;
+      }
+
+      match /character/{docId} {
+        allow get: if isOwner(userId) && isValidId(userId) && docId == 'main';
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && docId == 'main'
+          && isOwner(userId)
+          && isValidStudentCharacter(incoming())
+          && incoming().ownedSkins.size() == 1
+          && incoming().equippedSkin == 'novice_uniform'
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && existsAfter(/databases/$(database)/documents/students/$(userId))
+          && getAfter(/databases/$(database)/documents/students/$(userId)).data.uid == request.auth.uid;
+        allow update: if isVerifiedUser()
+          && isValidId(userId)
+          && docId == 'main'
+          && isOwner(userId)
+          && isValidStudentCharacter(incoming())
+          && incoming().uid == existing().uid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            (
+              // Legacy migration if an unlocked pre-RPG character document existed
+              !('locked' in existing())
+              && incoming().locked == true
+              && incoming().ownedSkins.size() == 1
+              && incoming().equippedSkin == 'novice_uniform'
+            ) || (
+              // Base character is permanently locked: only equip an already-owned skin
+              existing().locked == true
+              && incoming().diff(existing()).affectedKeys().hasOnly(['equippedSkin', 'updatedAt'])
+              && incoming().equippedSkin in existing().ownedSkins
+            ) || (
+              // Base character is permanently locked: atomically purchase & equip a new skin with points
+              existing().locked == true
+              && incoming().diff(existing()).affectedKeys().hasOnly(['ownedSkins', 'equippedSkin', 'updatedAt'])
+              && incoming().ownedSkins.size() == existing().ownedSkins.size() + 1
+              && incoming().ownedSkins.hasAll(existing().ownedSkins)
+              && incoming().equippedSkin in incoming().ownedSkins
+              && existsAfter(/databases/$(database)/documents/students/$(userId))
+              && getAfter(/databases/$(database)/documents/students/$(userId)).data.points < existingPoints(get(/databases/$(database)/documents/students/$(userId)).data)
+            )
+          );
+        allow delete: if isVerifiedUser()
+          && isValidId(userId)
+          && docId == 'main'
+          && isOwner(userId)
+          && !existsAfter(/databases/$(database)/documents/students/$(userId));
       }
     }
   }

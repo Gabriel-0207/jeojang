@@ -22,6 +22,77 @@
   }
 }
 
+@keyframes charBreathe {
+  0%, 100% {
+    transform: translateY(0px) scaleY(1);
+  }
+  50% {
+    transform: translateY(-1.8px) scaleY(1.007);
+  }
+}
+
+@keyframes charHeadBob {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-2.1px) rotate(0.65deg);
+  }
+}
+
+@keyframes charCoatSway {
+  0%, 100% {
+    transform: rotate(0deg) skewX(0deg);
+  }
+  50% {
+    transform: rotate(-1.2deg) skewX(-0.7deg);
+  }
+}
+
+@keyframes charEyeBlink {
+  0%, 91%, 100% {
+    transform: scaleY(1);
+  }
+  94.5% {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes charShadowPulse {
+  0%, 100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.96);
+  }
+}
+
+.animate-char-breathe {
+  transform-origin: 50% 92%;
+  animation: charBreathe 3.6s ease-in-out infinite;
+}
+
+.animate-char-head {
+  transform-origin: 50% 35%;
+  animation: charHeadBob 3.6s ease-in-out 0.16s infinite;
+}
+
+.animate-char-coat {
+  transform-origin: 50% 55%;
+  animation: charCoatSway 4.4s ease-in-out infinite;
+}
+
+.animate-char-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: charEyeBlink 4.8s ease-in-out infinite;
+}
+
+.animate-char-shadow {
+  transform-origin: center;
+  animation: charShadowPulse 3.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
